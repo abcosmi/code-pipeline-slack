@@ -1,3 +1,8 @@
+# ignore test-files
+src/.DS_Store
+src/full_test.json
+src/main.py
+
 # Byte-compiled / optimized / DLL files
 __pycache__/
 *.py[cod]
