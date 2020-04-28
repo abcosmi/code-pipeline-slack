@@ -6,6 +6,23 @@ __pycache__/
 # C extensions
 *.so
 
+# slack client lib
+src/bin/
+src/certifi-2020.4.5.1.dist-info/
+src/certifi/
+src/chardet-3.0.4.dist-info/
+src/chardet/
+src/idna-2.9.dist-info/
+src/idna/
+src/requests-2.23.0.dist-info/
+src/requests/
+src/slack_client-0.3.0.dist-info/
+src/slack_client/
+src/urllib3-1.25.9.dist-info/
+src/urllib3/
+
+
+
 # Distribution / packaging
 .Python
 build/
