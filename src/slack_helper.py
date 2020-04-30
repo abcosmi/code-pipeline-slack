@@ -71,7 +71,7 @@ def find_message_for_build(buildInfo):
     
     for m in find_my_messages(SLACK_CHANNEL):
         for block in msg_blocks(m):
-            if block['block_id'] == "7-footer":
+            if block['block_id'] == "9-footer":
                 if block['elements'][0]['text'] == buildInfo.executionId:
                     MSG_CACHE[buildInfo.executionId] = m
                     return m

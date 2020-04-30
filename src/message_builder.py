@@ -8,7 +8,7 @@ logger.setLevel(logging.INFO)
 
 
 block_order = ['0-title', '1-status', '2-revision_title', '3-revision',
-               '4-build_name', '5-build', '6-timestamp', '7-footer', '8-divider3', '9-actions']
+               '4-build_name', '5-build', '6-build_context_title', '7-build_context', '8-timestamp', '9-footer', '10-divider', '11-actions']
 
 
 class MessageBuilder(object):
@@ -132,7 +132,8 @@ class MessageBuilder(object):
       context = [pc(p) for p in phases if pc(p)]
 
       if len(context) > 0:
-          self.findOrCreateBlock("section", "Build Context", " ".join(context))
+          self.findOrCreateBlock("section", "6-build_context_title", "*Build Context*")
+          self.findOrCreateBlock("section", "7-build_context", ">" + "".join(context))
 
       pp = [fmt_p(p) for p in phases if show_p(p)]
       
@@ -141,7 +142,7 @@ class MessageBuilder(object):
 
 
     def attachTime(self, started_at, ended_at):
-        time = self.findOrCreateBlock("context", "6-timestamp")
+        time = self.findOrCreateBlock("context", "8-timestamp")
 
         if started_at != 'no_update' and started_at != " ":
             started_at = datetime.strptime(
@@ -160,7 +161,7 @@ class MessageBuilder(object):
 
     def findOrCreateAction(self, name, link):
         for a in self.blocks:
-            if a['block_id'] == '9-actions':
+            if a['block_id'] == '11-actions':
               for el in a['elements']:
                 if el['text']['text'] == name:
                   return a
@@ -169,13 +170,13 @@ class MessageBuilder(object):
         
         try:
           for block in self.blocks:
-            if block['block_id'] == "9-actions":
+            if block['block_id'] == "11-actions":
               block['elements'].append(a)
               return block
         except KeyError:
            pass
         
-        self.findOrCreateBlock("actions", "9-actions", a)
+        self.findOrCreateBlock("actions", "11-actions", a)
         
         return a
 
@@ -197,8 +198,8 @@ class MessageBuilder(object):
         return STATE_COLORS.get(self.pipelineStatus(), '#eee')
 
     def message(self):
-      self.findOrCreateBlock("context", "7-footer", self.createElement(text=self.buildInfo.executionId))
-      self.findOrCreateBlock("divider", "8-divider")
+      self.findOrCreateBlock("context", "9-footer", self.createElement(text=self.buildInfo.executionId))
+      self.findOrCreateBlock("divider", "10-divider")
       self.sortBlocks()
       return self.blocks
 
