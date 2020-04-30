@@ -1,6 +1,5 @@
 # -*- coding: utf-8 -*-
 
-from collections import OrderedDict
 import json
 import logging
 from datetime import datetime
@@ -106,13 +105,13 @@ class MessageBuilder(object):
 
       self.findOrCreateBlock("section", "4-build_title", "*Build*")
       si = self.findOrCreateBlock("section", "5-build", "")
-      # print(str(si))
+
       def pi(p):
             p_status = p.get('phase-status', 'IN_PROGRESS')
             return BUILD_PHASES[p_status]
 
       def fmt_p(p):
-          msg = ">{} {}".format(pi(p), p['phase-type'].capitalize())
+          msg = "&gt;{} {}".format(pi(p), p['phase-type'].capitalize())
           d = p.get('duration-in-seconds')
           if d:
               return msg + " - Time: {} seconds\n".format(d)
@@ -121,8 +120,8 @@ class MessageBuilder(object):
           return msg
 
       def show_p(p):
-          return p['phase-type'] != 'COMPLETED'
-
+        return p['phase-type'] != 'COMPLETED' 
+        
       def pc(p):
           ctx = p.get('phase-context', [])
           if len(ctx) > 0:
@@ -136,8 +135,10 @@ class MessageBuilder(object):
           self.findOrCreateBlock("section", "Build Context", " ".join(context))
 
       pp = [fmt_p(p) for p in phases if show_p(p)]
-      si['text']['text'] = "".join(pp)
-      # print("si= "+si['text']['text'])
+      
+      if len(pp) >= (len(si['text']['text'].split('\n')) - 1):
+        si['text']['text'] = "".join(pp)
+
 
     def attachTime(self, started_at, ended_at):
         time = self.findOrCreateBlock("context", "6-timestamp")
@@ -197,8 +198,6 @@ class MessageBuilder(object):
 
     def message(self):
       self.findOrCreateBlock("context", "7-footer", self.createElement(text=self.buildInfo.executionId))
-      # self.findOrCreateBlock("divider", "2-divider1")
-      # self.findOrCreateBlock("divider", "5-divider2")
       self.findOrCreateBlock("divider", "8-divider")
       self.sortBlocks()
       return self.blocks
