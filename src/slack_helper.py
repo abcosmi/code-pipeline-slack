@@ -70,21 +70,22 @@ def find_message_for_build(buildInfo):
         return cached
     
     for m in find_my_messages(SLACK_CHANNEL):
-        for att in msg_attachments(m):
-            if att.get('footer') == buildInfo.executionId:
-                MSG_CACHE[buildInfo.executionId] = m
-                return m
+        for block in msg_blocks(m):
+            if block['block_id'] == "7-footer":
+                if block['elements'][0]['text'] == buildInfo.executionId:
+                    MSG_CACHE[buildInfo.executionId] = m
+                    return m
     return None
 
 
-def msg_attachments(m):
-    return m.get('attachments', [])
+def msg_blocks(m):
+    return m.get('blocks', [])
 
 
-def msg_fields(m):
-    for att in msg_attachments(m):
-        for f in att['fields']:
-            yield f
+# def msg_fields(m):
+#     for att in msg_blocks(m):
+#         for f in att['fields']:
+#             yield f
 
 
 def post_build_msg(msgBuilder):
@@ -97,7 +98,7 @@ def post_build_msg(msgBuilder):
             r['message']['ts'] = r['ts']
             MSG_CACHE[msgBuilder.buildInfo.executionId] = r['message']
         return r
-
+    
     r = send_msg(SLACK_CHANNEL, msgBuilder.message())
     if r['ok']:
         # TODO: are we caching this ID?
@@ -107,26 +108,25 @@ def post_build_msg(msgBuilder):
     return r
 
 
-def send_msg(ch, attachments):
-
+def send_msg(ch, blocks):
     r = sc_bot.chat_postMessage(
         channel=ch,
         icon_emoji=SLACK_BOT_ICON,
         username=SLACK_BOT_NAME,
-        attachments=attachments
+        blocks=blocks
     )
 
     return r
 
 
-def update_msg(ch, ts, attachments):
+def update_msg(ch, ts, blocks):
 
     r = sc_bot.chat_update(
         channel=ch,
         ts=ts,
         icon_emoji=SLACK_BOT_ICON,
         username=SLACK_BOT_NAME,
-        attachments=attachments
+        blocks=blocks
     )
 
     return r

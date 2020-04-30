@@ -1,17 +1,13 @@
 # -*- coding: utf-8 -*-
 
-#from __future__ import print_function
 import json
 import boto3
 import time
 
-# from test_events import TEST_EVENTS, TEST_ERROR_EVENTS
 from build_info import BuildInfo, CodeBuildInfo
 from slack_helper import post_build_msg, find_message_for_build
 from message_builder import MessageBuilder
 
-# import re
-# import sys
 
 client = boto3.client('codepipeline')
 
@@ -21,7 +17,6 @@ def findRevisionInfo(info):
         pipelineName=info.pipeline,
         pipelineExecutionId=info.executionId
     )['pipelineExecution']
-
 
     revs = r.get('artifactRevisions', [])
     if len(revs) > 0:
@@ -52,17 +47,16 @@ def processCodePipeline(event):
         revision = findRevisionInfo(buildInfo)
         builder.attachRevisionInfo(revision)
 
-
     post_build_msg(builder)
 
 
 def processCodeBuild(event):
     cbi = CodeBuildInfo.fromEvent(event)
     (stage, pid, actionStates) = pipelineFromBuild(cbi)
-    
+
     if not pid:
         return
-    
+
     buildInfo = BuildInfo(pid, cbi.pipeline)
 
     existing_msg = find_message_for_build(buildInfo)
@@ -75,10 +69,10 @@ def processCodeBuild(event):
     logs = event['detail'].get('additional-information', {}).get('logs')
     try:
         if logs['stream-name']:
-            builder.attachLogs(event['detail']['additional-information']['logs'])
+            builder.attachLogs(
+                event['detail']['additional-information']['logs'])
     except KeyError:
         pass
-    
 
     post_build_msg(builder)
 
@@ -99,6 +93,5 @@ if __name__ == "__main__":
     with open('full_test.json') as f:
         events = json.load(f)
         for e in events:
-            # print(str(e))
             run(e, {})
             time.sleep(1)
