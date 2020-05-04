@@ -16,6 +16,7 @@ class MessageBuilder(object):
         self.buildInfo = buildInfo
         self.blocks = []
         self.messageId = None
+        self.user = ""
 
         if message:
             logger.info(json.dumps(message, indent=2))
@@ -136,7 +137,7 @@ class MessageBuilder(object):
           self.findOrCreateBlock("section", "7-build_context", ">" + "".join(context))
 
       pp = [fmt_p(p) for p in phases if show_p(p)]
-      
+
       if len(pp) >= (len(si['text']['text'].split('\n')) - 1):
         si['text']['text'] = "".join(pp)
 
@@ -180,6 +181,15 @@ class MessageBuilder(object):
         
         return a
 
+    def retrievePRId(self):
+        for block in self.blocks:
+            if block['block_id'] == "3-revision":
+                return block['text']['text'].split('#')[1].split(':')[0]
+        return None
+
+    def getUser(self, user):
+        self.user = user
+
     def pipelineStatus(self):
         return self.blocks[1]['text']['text'].split(" ")[1].upper()
 
@@ -202,6 +212,23 @@ class MessageBuilder(object):
       self.findOrCreateBlock("divider", "10-divider")
       self.sortBlocks()
       return self.blocks
+
+    def result(self):
+        if self.pipelineStatus() == 'SUCCEEDED':
+            msg = "Your PR was Successfully Merged, <@{}>! :parrot:".format(self.user)
+        else:
+            msg = "We can`t merge your PR, <@{}>... :feelsbadman:".format(self.user)
+        
+        return [
+            {
+                "type": "section",
+                "block_id": "result",
+                "text": {
+                    "text": msg,
+                    "type": "mrkdwn"
+                }
+            }
+        ]
 
 
 # https://docs.aws.amazon.com/codepipeline/latest/userguide/detect-state-changes-cloudwatch-events.html

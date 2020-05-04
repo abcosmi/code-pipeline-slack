@@ -8,6 +8,7 @@ logger.setLevel(logging.INFO)
 
 sc_bot = slack.WebClient(os.getenv("SLACK_BOT_TOKEN"))
 SLACK_CHANNEL = os.getenv("SLACK_CHANNEL")
+SLACK_PR_CHANNEL = os.getenv("SLACK_PR_CHANNEL")
 SLACK_BOT_NAME = os.getenv("SLACK_BOT_NAME", "BuildBot")
 SLACK_BOT_ICON = os.getenv("SLACK_BOT_ICON", ":robot_face:")
 
@@ -31,12 +32,11 @@ def find_channel(name):
     return None
 
 
-def find_msg(ch):
+def find_msg(ch, window_ms=1800, limit=200):
     now_ms = datetime.now().timestamp()
-    window_ms = 1800  #30 minutos
     oldest_ms = now_ms - window_ms 
 
-    return sc_bot.conversations_history(channel=ch, limit=200, inclusive="true", oldest=str(oldest_ms), latest=str(now_ms))
+    return sc_bot.conversations_history(channel=ch, limit=limit, inclusive="true", oldest=str(oldest_ms), latest=str(now_ms))
 
 USER_CACHE = {}
 
@@ -82,10 +82,21 @@ def msg_blocks(m):
     return m.get('blocks', [])
 
 
-# def msg_fields(m):
-#     for att in msg_blocks(m):
-#         for f in att['fields']:
-#             yield f
+def find_user_per_message(pr_id, ch_id):
+    msgs = find_msg(ch_id, window_ms=1728000, limit=1000)
+    for m in msgs['messages']:
+        if m['text'].find(pr_id) != -1:
+            return m['user']
+    return None
+
+def send_codepipeline_result(msgBuilder):
+    if msgBuilder.messageId:
+        ch_id = find_channel(SLACK_CHANNEL)
+        pr_id = msgBuilder.retrievePRId()
+        user = find_user_per_message(pr_id, ch_id)
+        msgBuilder.getUser(user)
+        r = send_msg(ch_id, msgBuilder,reply=True)
+        return r
 
 
 def post_build_msg(msgBuilder):
@@ -99,7 +110,7 @@ def post_build_msg(msgBuilder):
             MSG_CACHE[msgBuilder.buildInfo.executionId] = r['message']
         return r
     
-    r = send_msg(SLACK_CHANNEL, msgBuilder.message())
+    r = send_msg(SLACK_CHANNEL, msgBuilder)
     if r['ok']:
         # TODO: are we caching this ID?
         #MSG_CACHE[msgBuilder.buildInfo.executionId] = r['ts']
@@ -108,13 +119,23 @@ def post_build_msg(msgBuilder):
     return r
 
 
-def send_msg(ch, blocks):
-    r = sc_bot.chat_postMessage(
-        channel=ch,
-        icon_emoji=SLACK_BOT_ICON,
-        username=SLACK_BOT_NAME,
-        blocks=blocks
-    )
+def send_msg(ch, msg_builder, reply=False):
+    if reply:
+       r = sc_bot.chat_postMessage(
+            channel=ch,
+            icon_emoji=SLACK_BOT_ICON,
+            username=SLACK_BOT_NAME,
+            text=msg_builder.result()[0]['text']['text'],
+            thread_ts=msg_builder.messageId,
+            blocks=msg_builder.result()
+        ) 
+    else:
+        r = sc_bot.chat_postMessage(
+            channel=ch,
+            icon_emoji=SLACK_BOT_ICON,
+            username=SLACK_BOT_NAME,
+            blocks=msg_builder.message()
+        )
 
     return r
 

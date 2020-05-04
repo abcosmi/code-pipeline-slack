@@ -5,7 +5,7 @@ import boto3
 import time
 
 from build_info import BuildInfo, CodeBuildInfo
-from slack_helper import post_build_msg, find_message_for_build
+from slack_helper import post_build_msg, find_message_for_build, send_codepipeline_result
 from message_builder import MessageBuilder
 
 
@@ -48,6 +48,9 @@ def processCodePipeline(event):
         builder.attachRevisionInfo(revision)
 
     post_build_msg(builder)
+
+    if builder.pipelineStatus() != "STARTED":
+        send_codepipeline_result(builder)
 
 
 def processCodeBuild(event):
