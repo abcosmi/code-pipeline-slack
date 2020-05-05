@@ -15,6 +15,10 @@ Parameters:
     Type: String
     MinLength: 1
     Default: builds
+  SlackPRChannel:
+    Type: String
+    MinLength: 1
+    Default: prchannel
   SlackBotName:
     MinLength: 1
     Type: String
@@ -40,6 +44,8 @@ Resources:
           SLACK_BOT_TOKEN: !Ref SlackBotUserOAuthAccessToken
           SLACK_BOT_NAME: !Ref SlackBotName
           SLACK_BOT_ICON: !Ref SlackBotIcon
+          SLACK_CHANNEL: !Ref SlackChannel
+          SLACK_PR_CHANNEL: !Ref SlackPRChannel
 
       Policies:
         - AWSLambdaBasicExecutionRole
