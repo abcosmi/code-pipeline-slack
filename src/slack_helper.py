@@ -91,7 +91,7 @@ def find_user_per_message(pr_id, ch_id):
 
 def send_codepipeline_result(msgBuilder):
     if msgBuilder.messageId:
-        ch_id = find_channel(SLACK_CHANNEL)
+        ch_id = find_channel(SLACK_PR_CHANNEL)
         pr_id = msgBuilder.retrievePRId()
         user = find_user_per_message(pr_id, ch_id)
         msgBuilder.getUser(user)
