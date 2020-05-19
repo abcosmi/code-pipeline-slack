@@ -52,18 +52,21 @@ def find_my_messages(ch_name, user_name=SLACK_BOT_NAME):
     if 'error' in msg:
         logger.error("error: {}".format(msg['error']))
     else:
-        cached_user = USER_CACHE.get(user_name, "not_found")
-        if cached_user == "not_found":
-            for m in msg['messages']:
-                user = sc_bot.users_info(user=m.get('user'))
-                if user['ok']:
-                    if user['user']['name'] == user_name:
-                        USER_CACHE[user_name] = m.get('user')
-                        yield m
+        if msg['messages'] == []:
+            return None
         else:
-            for m in msg['messages']:
-                if cached_user == m.get('user'):
-                    yield m
+            cached_user = USER_CACHE.get(user_name, "not_found")
+            if cached_user == "not_found":
+                for m in msg['messages']:
+                    user = sc_bot.users_info(user=m.get('user'))
+                    if user['ok']:
+                        if user['user']['name'] == user_name:
+                            USER_CACHE[user_name] = m.get('user')
+                            yield m
+            else:
+                for m in msg['messages']:
+                    if cached_user == m.get('user'):
+                        yield m
 
 
 MSG_CACHE = {}
