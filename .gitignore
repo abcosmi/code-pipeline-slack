@@ -3,6 +3,10 @@
 src/.DS_Store
 src/full_test.json
 src/main.py
+cloudformation_template.yml
+src/lambda-notifier.zip
+src/map_git_slack.yml
+template2.yml
 
 # Byte-compiled / optimized / DLL files
 __pycache__/
@@ -38,7 +42,10 @@ src/slack/
 src/slackclient-2.5.0.dist-info/
 src/yarl-1.4.2.dist-info/
 src/yarl/
-
+src/PyYAML-5.3.1.dist-info/
+src/pyaml-20.4.0.dist-info/
+src/pyaml/
+src/yaml/
 
 # Distribution / packaging
 .Python

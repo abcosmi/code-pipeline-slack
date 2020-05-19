@@ -102,18 +102,18 @@ class MessageBuilder(object):
     def updateBuildStageInfo(self, name, phases, info):
       url = info.get('latestExecution', {}).get('externalExecutionUrl')
       if url:
-          self.findOrCreateAction('CodePipeline Logs', url)
+          self.findOrCreateAction('CodeBuild Logs', url)
 
       self.findOrCreateBlock("section", "4-build_title", "*Build*")
       si = self.findOrCreateBlock("section", "5-build", "")
 
       def pi(p):
-            p_status = p.get('phase-status', 'IN_PROGRESS')
+            p_status = p.get('phaseStatus', 'IN_PROGRESS')
             return BUILD_PHASES[p_status]
 
       def fmt_p(p):
-          msg = "&gt;{} {}".format(pi(p), p['phase-type'].capitalize())
-          d = p.get('duration-in-seconds')
+          msg = "&gt;{} {}".format(pi(p), p['phaseType'].capitalize())
+          d = p.get('durationInSeconds')
           if d:
               return msg + " - Time: {} seconds\n".format(d)
           else:
@@ -121,12 +121,12 @@ class MessageBuilder(object):
           return msg
 
       def show_p(p):
-        return p['phase-type'] != 'COMPLETED' 
+        return p['phaseType'] != 'COMPLETED' 
         
       def pc(p):
-          ctx = p.get('phase-context', [])
+          ctx = p.get('contexts', [])
           if len(ctx) > 0:
-              if ctx[0] != ': ':
+              if ctx[0]['statusCode'] != '':
                   return ctx[0]
           return None
 
@@ -134,12 +134,11 @@ class MessageBuilder(object):
 
       if len(context) > 0:
           self.findOrCreateBlock("section", "6-build_context_title", "*Build Context*")
-          self.findOrCreateBlock("section", "7-build_context", ">" + "".join(context))
+          self.findOrCreateBlock("section", "7-build_context", ">" + "".join(str(context)))
 
       pp = [fmt_p(p) for p in phases if show_p(p)]
 
-      if len(pp) >= (len(si['text']['text'].split('\n')) - 1):
-        si['text']['text'] = "".join(pp)
+      si['text']['text'] = "".join(pp)
 
 
     def attachTime(self, started_at, ended_at):
@@ -150,7 +149,7 @@ class MessageBuilder(object):
                 started_at, "%Y-%m-%dT%H:%M:%SZ").strftime("%d/%m/%Y %H:%M:%S UTC")
             time['elements'].append(self.createElement(text=">:clock2: Started: {}".format(started_at)))
 
-        if ended_at != 'no_update' and ended_at != " ":
+        if ended_at != 'no_update' and ended_at != " " and len(time['elements'][0]['text'].split('\n')) <= 1:
             ended_at = datetime.strptime(
                 ended_at, "%Y-%m-%dT%H:%M:%SZ").strftime("%d/%m/%Y %H:%M:%S UTC")
             time['elements'][0]['text'] = time['elements'][0]['text'] + "\n>:clock10: Ended:  {}".format(ended_at)
@@ -158,7 +157,7 @@ class MessageBuilder(object):
         
 
     def attachLogs(self, logs):
-        self.findOrCreateAction(name='CloudWatch Logs', link=logs['deep-link'])
+        self.findOrCreateAction(name='CloudWatch Logs', link=logs['deepLink'])
 
     def findOrCreateAction(self, name, link):
         for a in self.blocks:
@@ -181,13 +180,13 @@ class MessageBuilder(object):
         
         return a
 
-    def retrievePRId(self):
+    def retrieveGitUser(self):
         for block in self.blocks:
             if block['block_id'] == "3-revision":
-                return block['text']['text'].split('#')[1].split(':')[0]
+                return block['text']['text'].split('@')[1].split(' ')[0]
         return None
 
-    def getUser(self, user):
+    def setUser(self, user):
         self.user = user
 
     def pipelineStatus(self):
@@ -203,6 +202,8 @@ class MessageBuilder(object):
                 self.attachTime(event['time'], 'no_update')
             elif (event['detail']['state'] == 'SUCCEEDED') or (event['detail']['state'] == 'FAILED') or (event['detail']['state'] == 'CANCELED'):
                 self.attachTime('no_update', event['time'])
+                return True
+        return False
 
     def color(self):
         return STATE_COLORS.get(self.pipelineStatus(), '#eee')

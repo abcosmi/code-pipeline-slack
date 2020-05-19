@@ -9,11 +9,11 @@ from slack_helper import post_build_msg, find_message_for_build, send_codepipeli
 from message_builder import MessageBuilder
 
 
-client = boto3.client('codepipeline')
-
+codepipeline_client = boto3.client('codepipeline')
+codebuild_client = boto3.client('codebuild')
 
 def findRevisionInfo(info):
-    r = client.get_pipeline_execution(
+    r = codepipeline_client.get_pipeline_execution(
         pipelineName=info.pipeline,
         pipelineExecutionId=info.executionId
     )['pipelineExecution']
@@ -25,7 +25,7 @@ def findRevisionInfo(info):
 
 
 def pipelineFromBuild(codeBuildInfo):
-    r = client.get_pipeline_state(name=codeBuildInfo.pipeline)
+    r = codepipeline_client.get_pipeline_state(name=codeBuildInfo.pipeline)
     for s in r['stageStates']:
         for a in s['actionStates']:
             executionId = a.get('latestExecution', {}).get(
@@ -41,7 +41,7 @@ def processCodePipeline(event):
     buildInfo = BuildInfo.fromEvent(event)
     existing_msg = find_message_for_build(buildInfo)
     builder = MessageBuilder(buildInfo, existing_msg)
-    builder.updatePipelineEvent(event)
+    send_reply = builder.updatePipelineEvent(event)
 
     if builder.needsRevisionInfo():
         revision = findRevisionInfo(buildInfo)
@@ -49,31 +49,34 @@ def processCodePipeline(event):
 
     post_build_msg(builder)
 
-    if builder.pipelineStatus() != "STARTED":
+    if send_reply:
         send_codepipeline_result(builder)
 
 
 def processCodeBuild(event):
-    cbi = CodeBuildInfo.fromEvent(event)
-    (stage, pid, actionStates) = pipelineFromBuild(cbi)
+    event_id = event['detail']['build-id'].split('/')[1]
+    build_status = codebuild_client.batch_get_builds(ids=[event_id])
 
+    pid = event_id.split(':')[1] or None
     if not pid:
         return
-
-    buildInfo = BuildInfo(pid, cbi.pipeline)
+    pipeline_name =  event_id.split(':')[0]
+    cbi = CodeBuildInfo(build_status['builds'][0]['initiator'][13:], event_id)
+    (stage, pid, actionStates) = pipelineFromBuild(cbi)
+    buildInfo = BuildInfo(pid,pipeline_name)
 
     existing_msg = find_message_for_build(buildInfo)
     builder = MessageBuilder(buildInfo, existing_msg)
 
-    if 'phases' in event['detail']['additional-information']:
-        phases = event['detail']['additional-information']['phases']
-        builder.updateBuildStageInfo(stage, phases, actionStates)
+    
+    phases = build_status['builds'][0]['phases']
+    builder.updateBuildStageInfo(stage, phases, actionStates)
 
-    logs = event['detail'].get('additional-information', {}).get('logs')
+    logs = build_status['builds'][0].get('logs', {})
     try:
-        if logs['stream-name']:
+        if logs['streamName']:
             builder.attachLogs(
-                event['detail']['additional-information']['logs'])
+                logs)
     except KeyError:
         pass
 
